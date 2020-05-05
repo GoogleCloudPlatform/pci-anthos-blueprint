@@ -1,0 +1,15 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: frontend-ingress
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - store-in-scope/istio-ingressgateway
+  http:
+  - route:
+    - destination:
+        host: frontend.store-in-scope.svc.cluster.local
+        port:
+          number: 80

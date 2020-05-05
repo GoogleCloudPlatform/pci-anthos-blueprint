@@ -1,0 +1,6 @@
+terraform {
+  backend "gcs" {
+    bucket = "${ADMIN_BUCKET}"
+    prefix = "terraform/state/infrastructure"
+  }
+}

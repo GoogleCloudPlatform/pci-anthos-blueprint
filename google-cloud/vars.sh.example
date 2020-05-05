@@ -1,0 +1,54 @@
+# A Google Cloud storage bucket to be used as the backend for terraform state of the `/admin` root module.
+export TERRAFORM_BASE_BUCKET_NAME="<A pre-existing GCS bucket with write access>"
+
+export TERRAFORM_BASE_BUCKET_PREFIX="terraform/state/base-prefix"
+
+export TERRAFORM_CLOUD_BUILD_REMOTE_STATE_BACKEND_PREFIX="terraform/state/cloud-build"
+
+# A string to be used as a prefix for the managed projects. 
+export PROJECT_PREFIX="myprojectprefix"
+
+# The Google Cloud organization ID from the output of the command `gcloud organizations list`
+export ORGANIZATION_ID="<my GCP organization ID>"
+
+export REGION="us-central1"
+
+# The billing account to be used for projects and their resources. This is ACCOUNT_ID
+# from the output of the command `gcloud beta billing accounts list`
+export BILLING_ACCOUNT="<my billing account>"
+
+# For the remote git repository that contains this code (not the Anthos Config Management repository).
+# To be used by the Cloud Build trigger.
+# See https://cloud.google.com/sdk/gcloud/reference/beta/builds/triggers/create/github
+# The owner for https://github.com/googlecloudplatform/cloud-builders is "googlecloudplatform".
+export CLOUD_BUILD_GITHUB_OWNER="googlecloudplatform"
+
+# The name for https://github.com/googlecloudplatform/cloud-builders is "cloud-builders".
+export CLOUD_BUILD_REPOSITORY_NAME="cloud-builders"
+
+# A regular expression specifying which git branches to match for the Cloud Build trigger
+# https://cloud.google.com/sdk/gcloud/reference/beta/builds/triggers/create/github#--branch-pattern
+export CLOUD_BUILD_PUSH_BRANCH_PATTERN="ci.*"
+
+# Set a DNS hostname ("www", "store", etc. ) and zone name
+# ("mycompany.com", "dev.mycompany.com" ) to use. This will be used for DNS
+# records as well as managed TLS certificates for the frontend load balancer.
+# See README.md#dns-configuration for details.
+# The below configuration will result in `store.dev.mycompany.com` for its URL
+export FRONTEND_HOSTNAME="store"
+export FRONTEND_ZONE_DNS_NAME="dev.mycompany.com"
+
+# The ssh form of the git repository address used for Anthos Config Management
+export ACM_SYNCREPO="git@github.com:googlecloudplatform/cloud-builders.git"
+# The branch of the git repository used for Anthos Config Management
+export ACM_SYNCBRANCH="main"
+
+# The cluster names
+export IN_SCOPE_CLUSTER=in-scope
+export OUT_OF_SCOPE_CLUSTER=out-of-scope
+
+# Absolute path on docker image to Anthos Service Mesh
+export ASM_PATH="/opt/istio-1.6.4-asm.9"
+
+# Absolute path on docker image to the google-cloud directory
+export SRC_PATH="/workspace/google-cloud"

@@ -1,0 +1,13 @@
+vars.sh
+vars.sh.*
+!vars.sh.example
+backend.tf
+!backend.tf.tmpl
+terraform.tfvars
+.terraform
+private/
+terraform.out
+scripts/scratch-functions.sh
+
+.idea
+.DS_Store

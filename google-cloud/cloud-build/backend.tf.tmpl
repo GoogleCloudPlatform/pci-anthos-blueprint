@@ -1,0 +1,6 @@
+terraform {
+  backend "gcs" {
+    bucket = "${TERRAFORM_BASE_BUCKET_NAME}"
+    prefix = "${TERRAFORM_CLOUD_BUILD_REMOTE_STATE_BACKEND_PREFIX}"
+  }
+}

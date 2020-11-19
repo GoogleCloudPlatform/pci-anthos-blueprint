@@ -17,6 +17,11 @@ export REGION="us-central1"
 # from the output of the command `gcloud beta billing accounts list`
 export BILLING_ACCOUNT="<my billing account>"
 
+# Optional folder ID to be used as parent for the admin folder. This is the ID from the output of the
+# command `gcloud resource-manager folders list --organization=ORGANIZATION_ID`
+# If this is not specified the admin folder will be created at the organization root.
+export ADMIN_PARENT_FOLDER_ID=""
+
 # For the remote git repository that contains this code (not the Anthos Config Management repository).
 # To be used by the Cloud Build trigger.
 # See https://cloud.google.com/sdk/gcloud/reference/beta/builds/triggers/create/github

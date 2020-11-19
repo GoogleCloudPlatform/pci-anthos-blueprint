@@ -48,6 +48,11 @@ BILLING_ACCOUNT
 The billing account to be used for projects and their resources. This is `ACCOUNT_ID` from the output of the command `gcloud beta billing accounts list`
 
 ```
+ADMIN_PARENT_FOLDER_ID
+```
+An optional folder ID to be used as parent for the admin folder. This is the ID from the output of the command `gcloud resource-manager folders list --organization=ORGANIZATION_ID`. If this is not specified the admin folder will be created at the organization root.
+
+```
 CLOUD_BUILD_GITHUB_OWNER
 CLOUD_BUILD_REPOSITORY_NAME
 ```

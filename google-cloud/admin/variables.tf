@@ -14,8 +14,12 @@ variable "region" {
   description = "The Google Cloud region to use"
 }
 
+variable "parent_folder_id" {
+  description = "Optional Google Cloud parent folder ID to use"
+}
+
 locals {
-  admin_parent       = "organizations/${var.organization_id}"
+  admin_parent       = var.parent_folder_id != "" ? "folders/${var.parent_folder_id}" : "organizations/${var.organization_id}"
   admin_folder_name  = "${var.project_prefix}-anthos"
   admin_project_name = "${var.project_prefix}-admin"
   admin_project_activate_apis = [

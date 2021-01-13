@@ -5,7 +5,7 @@ module "parent-folder" {
 }
 
 module "admin-project" {
-  source                  = "github.com/terraform-google-modules/terraform-google-project-factory?ref=v9.1.0"
+  source                  = "github.com/terraform-google-modules/terraform-google-project-factory?ref=v9.2.0"
   random_project_id       = true
   name                    = local.admin_project_name
   folder_id               = module.parent-folder.id

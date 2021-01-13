@@ -249,5 +249,40 @@ locals {
     "18.231.104.233/32",
     "18.228.167.86/32"
   ]
-}
 # End section of firewall related data and locals
+
+# Begin section of Cloud Armor related locals
+  google_compute_security_policy_frontend_name = "frontend-application-security-policy"
+
+  # See https://cloud.google.com/armor/docs/rule-tuning#sql_injection
+  # SQLi Sensitivity Level 1
+  google_compute_security_policy_sqli_rule_expression_list = <<EOT
+    evaluatePreconfiguredExpr('sqli-stable',[
+      'owasp-crs-v030001-id942110-sqli',
+      'owasp-crs-v030001-id942120-sqli',
+      'owasp-crs-v030001-id942150-sqli',
+      'owasp-crs-v030001-id942180-sqli',
+      'owasp-crs-v030001-id942200-sqli',
+      'owasp-crs-v030001-id942210-sqli',
+      'owasp-crs-v030001-id942260-sqli',
+      'owasp-crs-v030001-id942300-sqli',
+      'owasp-crs-v030001-id942310-sqli',
+      'owasp-crs-v030001-id942330-sqli',
+      'owasp-crs-v030001-id942340-sqli',
+      'owasp-crs-v030001-id942380-sqli',
+      'owasp-crs-v030001-id942390-sqli',
+      'owasp-crs-v030001-id942400-sqli',
+      'owasp-crs-v030001-id942410-sqli',
+      'owasp-crs-v030001-id942430-sqli',
+      'owasp-crs-v030001-id942440-sqli',
+      'owasp-crs-v030001-id942450-sqli',
+      'owasp-crs-v030001-id942251-sqli',
+      'owasp-crs-v030001-id942420-sqli',
+      'owasp-crs-v030001-id942431-sqli',
+      'owasp-crs-v030001-id942460-sqli',
+      'owasp-crs-v030001-id942421-sqli',
+      'owasp-crs-v030001-id942432-sqli'
+    ])
+EOT
+# End section of Cloud Armor related locals
+}

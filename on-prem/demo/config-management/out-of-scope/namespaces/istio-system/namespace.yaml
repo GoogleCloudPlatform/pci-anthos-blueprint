@@ -17,3 +17,5 @@ kind: Namespace
 metadata:
   name: istio-system
   labels:
+    name: istio-system
+    topology.istio.io/network: out-of-scope-network

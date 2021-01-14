@@ -17,5 +17,5 @@ kind: Namespace
 metadata:
   name: store-out-of-scope
   labels:
-    istio.io/rev: asm-173-6
+    istio.io/rev: asm-181-5
     name: store-out-of-scope

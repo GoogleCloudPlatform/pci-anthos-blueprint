@@ -40,6 +40,7 @@ export IN_SCOPE_CLUSTER_NAME=in-scope
 export OUT_OF_SCOPE_CLUSTER_NAME=out-of-scope
 
 # ASM/Istio details
-export ASM_VERSION=1.7.3-asm.6
-export ASM_REVISION_LABEL=asm-173-6
-export ASM_PACKAGES_BRANCH="release-1.7-asm"
+export ASM_VERSION=1.8.1-asm.5
+export ASM_REVISION_LABEL=asm-181-5
+# ASM Release branch of https://github.com/GoogleCloudPlatform/anthos-service-mesh-packages.git
+export ASM_PACKAGES_BRANCH="release-1.8-asm"

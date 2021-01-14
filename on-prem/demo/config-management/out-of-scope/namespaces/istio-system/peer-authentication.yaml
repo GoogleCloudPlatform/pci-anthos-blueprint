@@ -15,7 +15,7 @@
 apiVersion: security.istio.io/v1beta1
 kind: PeerAuthentication
 metadata:
-  name: default
+  name: default-strict-mtls
 spec:
   mtls:
     mode: STRICT

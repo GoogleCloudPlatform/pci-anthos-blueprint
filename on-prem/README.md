@@ -1,6 +1,7 @@
-# Anthos Blueprint: PCI compliance using Anthos on-prem
-This repo contains a sample app and configuration that provides a baseline for addressing 
-Payment Card Industry Data Security Standard (PCI DSS) compliance requirements using [Anthos GKE on-prem](https://cloud.google.com/anthos/gke/docs/on-prem/overview).
+# Anthos Blueprint: PCI compliance baseline using Anthos on-prem
+This repo contains a sample app and configuration that provides a baseline for addressing
+Payment Card Industry Data Security Standard (PCI DSS) compliance requirements using 
+[Anthos clusters on VMware](https://cloud.google.com/anthos/gke/docs/on-prem/overview) (GKE on-prem).
 
 As a companion to this repo and instructions you are strongly advised to read:
 * the associated [PCI for Anthos on-prem](https://cloud.google.com/architecture/blueprints/gke--on-prem-pci-dss-blueprint) 
@@ -12,7 +13,7 @@ user guide
 ## Caveats
 This blueprint is provided with the following caveats and limitations:
 * This blueprint is for demonstration purposes only
-* Implementing the blueprint alone does **not** provide compliance with all PCI DSS requirements
+* The blueprint addresses a subset of PCI DSS requirements; implementing the blueprint does **not** provide full compliance 
 * Securing Anthos GKE on-prem is a [shared responsibiltiy](http://cloud/anthos/docs/concepts/gke-shared-responsibility). 
 For example, you are responsible for:
   * Appropriately segmenting the underlying vSphere networks
@@ -39,10 +40,23 @@ In this blueprint you:
 ## Supported versions
 This installation has been tested and verified against the following versions:
 * GKE on-prem: 1.5.2-gke.3, and Anthos Service Mesh: 1.7.3-asm.6
+  * **NOTE** that multi-cluster Anthos Service Mesh is not officially supported until ASM 1.8
+* GKE on-prem: 1.6.0-gke.7, and Anthos Service Mesh: 1.8.1-asm.5
 
 
 ## Security controls
 This section describes the security controls used by the blueprint.
+
+### GKE on-prem
+GKE on-prem provides features that can help you address PCI requirements. Refer to the GKE on-prem [Security overview](https://cloud.google.com/anthos/gke/docs/on-prem/1.6/concepts/security)
+documentation 
+* GKE on-prem VMware node images come preconfigured with PCI DSS, NIST Baseline High, and DoD Cloud Computing SRG Impact
+Level 2 settings. See the [node compliance](https://cloud.google.com/anthos/gke/docs/on-prem/concepts/node-compliance) docs
+* Enable [audit logging](https://cloud.google.com/anthos/gke/docs/on-prem/how-to/audit-logging) to send Admin Activity
+audit log entries from all Kubernetes API servers to Cloud Logging
+* Configure [OpenID Connect](https://cloud.google.com/anthos/gke/docs/on-prem/how-to/oidc) for user authentication to
+your user clusters. Use Kubernetes Role-Based Access Control (RBAC) for to configure more granular access to Kubernetes 
+resources
 
 ### Network controls
 Configuring the underlying vSphere networks is outside the scope of the blueprint. Refer to the GKE on-prem [networking overview](https://cloud.google.com/anthos/gke/docs/on-prem/concepts/networking)
@@ -76,23 +90,32 @@ allow ingress to `paymentservice` pods from `checkoutservice` pods.
 A service mesh is an infrastructure layer that enables managed, observable, and secure communication across your services.
 See the [traffic flow](diagrams/traffic-flow.png) diagram for an overview of request paths through the mesh.
 
-In this blueprint, you deploy a service mesh based on the `asm-multicloud` profile. See the 
-[supported features](https://cloud.google.com/service-mesh/docs/supported-features) docs for details on the 
-functionality available in the `asm-multicloud` profile. You customise the profile with an
-[overlay](https://cloud.google.com/service-mesh/docs/enable-optional-features) (see overlay [yaml](./anthos-service-mesh/istio-overlay-in-scope_tmpl.yaml)).
+You deploy a Anthos Service Mesh in a [multi-cluster configuration](https://cloud.google.com/service-mesh/docs/gke-on-prem-install-multicluster-vmware).
+This way, you can use a single logical mesh to manage and control traffic between the clusters, while
+still maintaining strong network-level separation. 
+
+You use the `asm-multicloud` profile. See the  [supported features](https://cloud.google.com/service-mesh/docs/supported-features)
+docs for details on the functionality available in the `asm-multicloud` profile. 
+You customise the Istio profile in each cluster with an
+[overlay](https://cloud.google.com/service-mesh/docs/enable-optional-features) (see overlay yamls: 
+[in-scope](./anthos-service-mesh/istio-overlay-in-scope_tmpl.yaml), [out-of-scope](./anthos-service-mesh/istio-overlay-out-of-scope_tmpl.yaml)).
 * The mesh has the following characteristics:
+  * Multi-cluster. The mesh spans both clusters.
   * Multi-primary. Each GKE cluster operates its own mesh, and has its own Istio control plane.
   * Multi-network. The GKE clusters are in separate vSphere networks to enforce strong isolation between the in-scope
-and out-of-scope resources. The workload instances in different networks reach each other through 
-[Istio gateways](https://istio.io/latest/docs/concepts/traffic-management/#gateways)
+and out-of-scope resources. 
   * Refer to the [Deployment Models](https://istio.io/latest/docs/ops/deployment/deployment-models)
 Istio documentation for a deeper discussion of these topics.  
 * The store-in-scope and store-out-of-scope namespaces are enabled for Istio proxy injection. Pods in these namespaces
 receive Istio sidecar proxy containers.
 
-#### Cross-cluster communication
-1. You configure the mesh in the `in-scope` cluster such that requests to services in the `out-of-scope` cluster are routed to
-a Gateway via the out-of-scope load balancer.
+#### Cross-cluster communication (east-west)
+1. Requests flow only from the `in-scope` cluster to the `out-of-scope` cluster. Services in the `out-of-scope` 
+cluster do not make requests to the `in-scope` cluster. 
+
+1. You configure the mesh in the `in-scope` cluster such that requests to services in the `out-of-scope` cluster are 
+routed to an 'east-west' Gateway (see [yaml](./demo/config-management/out-of-scope/namespaces/store-out-of-scope/gateway.yaml))
+via the out-of-scope load balancer.
     ```YAML
     meshNetworks:
       in-scope:
@@ -108,11 +131,11 @@ a Gateway via the out-of-scope load balancer.
         - address: ${OUT_OF_SCOPE_ISTIO_INGRESS_IP}
           port: 443
     ```
-2. Cross-cluster service communication is authenticated and secured with mTLS. The Gateway in the `out-of-scope` 
-cluster (see [yaml](./demo/config-management/out-of-scope/namespaces/store-out-of-scope/gateway.yaml))
-is configued in AUTO_PASSTHROUGH mode such the TLS connection is terminated at the service rather than at the Gateway.
+1. Cross-cluster service communication is authenticated and secured with mTLS. The east-west Gateway in the `out-of-scope` 
+cluster is configued in AUTO_PASSTHROUGH mode such the TLS connection is terminated at the service rather than 
+at the Gateway.
 
-3. The clusters use certificates that share a common root CA. The shared root CA enables mutual TLS communication across
+1. The clusters use certificates that share a common root CA. The shared root CA enables mutual TLS communication across
 different clusters. For simplicity, the blueprint uses the certificates from the Istio samples directory for both clusters.
 You should not use these in production.
 
@@ -155,7 +178,6 @@ are executed by the Open Policy Agent (OPA). In this blueprint, you enforce cons
 (see constraint [yaml](./demo/config-management/in-scope/cluster/constraints-psp.yaml))
   * Note that the blueprint implements only a subset of the constraints that map to PodSecurityPolicy. 
   See the Gatekeeper [repo](https://github.com/open-policy-agent/gatekeeper-library/tree/master/library/pod-security-policy) for the full set.
-
 
 ## Prequisites
 To install this blueprint you need:

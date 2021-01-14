@@ -16,24 +16,6 @@
 set -u
 source vars.sh
 
-
-function enable_apis {
-  echo "Enabling GCP APIs"
-  gcloud services enable \
-    container.googleapis.com \
-    compute.googleapis.com \
-    monitoring.googleapis.com \
-    logging.googleapis.com \
-    cloudtrace.googleapis.com \
-    meshtelemetry.googleapis.com \
-    meshconfig.googleapis.com \
-    iamcredentials.googleapis.com \
-    anthos.googleapis.com \
-    gkeconnect.googleapis.com \
-    gkehub.googleapis.com \
-    cloudresourcemanager.googleapis.com
-}
-
 function init_contexts {
   # use cluster1 as in-scope
   init_context ${USER_CLUSTER_1_CONFIG} "in-scope"
@@ -79,23 +61,18 @@ wQfk16sxprI2gOJ2vFFggdq3ixF2h4qNBt0kI7ciDhgpwS8t+/960IsIgw==
 EOF
     tar xzf istio-${ASM_VERSION}-linux-amd64.tar.gz
   fi
-}
 
-# do we need this?
-function cleanup_namespaces {
-  for CTX in in-scope out-of-scope; do
-    kubectx $CTX
-    kubectl delete namespace store-in-scope &> /dev/null || true
-    kubectl delete namespace store-out-of-scope &> /dev/null || true
-    kubectl delete namespace istio-system &> /dev/null || true
-  done
-  sleep 5
+  if [ ! -d asm-packages ]; then
+    git clone https://github.com/GoogleCloudPlatform/anthos-service-mesh-packages.git asm-packages
+    git -C asm-packages checkout ${ASM_PACKAGES_BRANCH}
+  fi
 }
 
 function create_istio_system_namespace {
   for CTX in in-scope out-of-scope; do
     kubectx $CTX
-    kubectl create namespace istio-system
+#    kubectl delete namespace istio-system &> /dev/null || true
+    kubectl create namespace istio-system &> /dev/null || true
   done
 }
 
@@ -112,18 +89,23 @@ function install_ca_certs {
 }
 
 function generate_istio_config_from_template {
-  envsubst < ../anthos-service-mesh/istio-operator-in-scope_tmpl.yaml >  ../anthos-service-mesh/istio-operator-${IN_SCOPE_CLUSTER_NAME}.yaml
-  envsubst < ../anthos-service-mesh/istio-operator-out-scope_tmpl.yaml >  ../anthos-service-mesh/istio-operator-${OUT_OF_SCOPE_CLUSTER_NAME}.yaml
+  envsubst < ../anthos-service-mesh/istiod-service_tmpl.yaml >  ../anthos-service-mesh/istiod-service.yaml
+  for CTX in in-scope out-of-scope; do
+    envsubst < ../anthos-service-mesh/istio-overlay-${CTX}_tmpl.yaml >  ../anthos-service-mesh/istio-overlay-${CTX}.yaml
+  done
 }
 
-function istioctl_apply {
+function istioctl_install {
   for CTX in in-scope out-of-scope; do
     kubectx $CTX
-    istioctl manifest apply -f ../anthos-service-mesh/istio-operator-$CTX.yaml \
-      --charts $TMP_DIR/istio-${ASM_VERSION}/manifests \
-      --set values.global.hub=${ASM_HUB} \
-      --set values.global.tag=${ASM_VERSION} \
-      --set values.global.imagePullPolicy=Always
+	  istioctl install \
+      --set profile=asm-multicloud \
+      --set revision=asm-173-6 \
+      -f ../anthos-service-mesh/istio-overlay-$CTX.yaml \
+      -f ${TMP_DIR}/asm-packages/asm/istio/options/cni-onprem.yaml
+
+    # add validating webhook
+    kubectl apply -f ../anthos-service-mesh/istiod-service.yaml
   done
 }
 
@@ -193,11 +175,30 @@ function wait_for_namespace {
   done
 }
 
+# testing
+function remove_asm {
+  for CTX in in-scope out-of-scope; do
+    kubectx $CTX
+    kubectl delete istiooperator installed-state-${ASM_REVISION_LABEL} -n istio-system
+    kubectl delete ns istio-system
+  done
+}
+
+# testing
+function remove_store {
+  local appdir=../app/store/cluster
+  kubectx out-of-scope
+  kubectl delete -f $appdir/out-of-scope/namespaces/store-out-of-scope/ -n store-out-of-scope
+  kubectx in-scope
+  kubectl delete -f $appdir/in-scope/namespaces/store-out-of-scope/ -n store-out-of-scope
+  kubectl delete -f $appdir/in-scope/namespaces/store-in-scope/ -n store-in-scope
+}
+
 function install_asm {
   create_istio_system_namespace
   install_ca_certs
   generate_istio_config_from_template
-  istioctl_apply
+  istioctl_install
   generate_ingress_certificates
   cross_cluster_service_secret
   verify_asm
@@ -221,7 +222,6 @@ function install_store {
 
 
 function pci_setup {
-  enable_apis
   get_packages
   init_contexts
 }

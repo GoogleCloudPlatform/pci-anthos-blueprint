@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: v1
-kind: Namespace
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
 metadata:
-  name: store-in-scope
-  labels:
-    istio.io/rev: asm-173-6
-    name: store-in-scope
+  name: default-strict-mtls
+spec:
+  mtls:
+    mode: STRICT

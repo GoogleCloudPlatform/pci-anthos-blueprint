@@ -12,10 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: store-in-scope
-  labels:
-    istio.io/rev: asm-173-6
-    name: store-in-scope
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+spec:
+  components:
+    ingressGateways:
+      - name: istio-ingressgateway
+        enabled: true
+        k8s:
+          service:
+            # ingress VIP for out-of-scope
+            loadBalancerIP: ${OUT_OF_SCOPE_ISTIO_INGRESS_IP}
+            ports:
+              - name: status-port
+                port: 15020
+                targetPort: 15020
+              - name: https
+                port: 443
+                targetPort: 8443
+

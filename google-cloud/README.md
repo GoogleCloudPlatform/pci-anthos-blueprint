@@ -1,4 +1,4 @@
-# PCI Compliant (pending) Anthos Cloud Blueprint
+# PCI on Anthos Blueprint
 
 # Contents
 

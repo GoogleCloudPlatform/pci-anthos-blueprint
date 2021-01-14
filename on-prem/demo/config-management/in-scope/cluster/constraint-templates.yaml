@@ -38,7 +38,6 @@ spec:
         }
 
 ---
-# see https://github.com/open-policy-agent/gatekeeper-library/tree/master/library/general/block-nodeport-services
 apiVersion: templates.gatekeeper.sh/v1beta1
 kind: ConstraintTemplate
 metadata:

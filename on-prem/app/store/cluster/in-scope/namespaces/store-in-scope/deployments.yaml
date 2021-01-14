@@ -30,6 +30,8 @@ spec:
       containers:
         - name: server
           image: gcr.io/google-samples/microservices-demo/frontend:v0.2.0
+          securityContext:
+            allowPrivilegeEscalation: false
           ports:
           - containerPort: 8080
           env:
@@ -74,6 +76,8 @@ spec:
       containers:
         - name: server
           image: gcr.io/google-samples/microservices-demo/checkoutservice:v0.2.0
+          securityContext:
+            allowPrivilegeEscalation: false
           ports:
           - containerPort: 5050
           readinessProbe:
@@ -125,6 +129,8 @@ spec:
       containers:
       - name: server
         image: gcr.io/google-samples/microservices-demo/paymentservice:v0.2.0
+        securityContext:
+          allowPrivilegeEscalation: false
         ports:
         - containerPort: 50051
         env:

@@ -20,7 +20,7 @@ For example, you are responsible for:
   * Operating, maintaining, and patching infrastructure, including networks, servers and storage 
 
 ## Architecture
-![](./pci-gke-onprem-arch.png)
+![](diagrams/pci-gke-onprem-arch.png)
 
 ## Summary
 In this blueprint you:
@@ -38,16 +38,16 @@ In this blueprint you:
 
 ## Supported versions
 This installation has been tested and verified against the following versions:
-* GKE on-prem: 1.4.0-gke.13, and Anthos Service Mesh: 1.6.5-asm.1
-* GKE on-prem: 1.4.3-gke.3, and Anthos Service Mesh: 1.6.5-asm.1
+* GKE on-prem: 1.5.2-gke.3, and Anthos Service Mesh: 1.7.3-asm.6
+
 
 ## Security controls
 This section describes the security controls used by the blueprint.
 
 ### Network controls
-Configuring the underlying vSphere networks is outside the scope of the blueprint. See the GKE on-prem 
-[networking overview](https://cloud.google.com/anthos/gke/docs/on-prem/concepts/networking)
-and the related [vSphere network requirements](https://cloud.google.com/anthos/gke/docs/on-prem/how-to/network-basic) for more details.
+Configuring the underlying vSphere networks is outside the scope of the blueprint. Refer to the GKE on-prem [networking overview](https://cloud.google.com/anthos/gke/docs/on-prem/concepts/networking)
+and the related [vSphere network requirements](https://cloud.google.com/anthos/gke/docs/on-prem/how-to/network-basic)
+for more details.
 
 You are responsible for:
 * Segmenting the vSphere networks such that resources that are in-scope for PCI compliance are on separate networks 
@@ -56,6 +56,8 @@ than those that are out-of-scope.
 configured NAT device.
 * Configuring firewall rules to allow only known traffic to and from the network(s) containing in-scope resources.
 * Restricting access to the admin workstation to only authorized users.
+
+See the [network diagram](diagrams/network-sample.png) for a sample network layout.
 
 ### Network policies
 Kubernetes [network policies](https://kubernetes.io/docs/concepts/services-networking/network-policies/) 
@@ -69,17 +71,20 @@ The policies:
 allow ingress to `paymentservice` pods from `checkoutservice` pods.
 
 ### Anthos Service Mesh
-Anthos Service Mesh helps you manage an [Istio](https://istio.io/docs/concepts/what-is-istio/) -based service mesh. 
+[Anthos Service Mesh](https://cloud.google.com/anthos/service-mesh)(ASM) helps you manage an 
+[Istio](https://istio.io/docs/concepts/what-is-istio/) -based service mesh. 
 A service mesh is an infrastructure layer that enables managed, observable, and secure communication across your services.
+See the [traffic flow](diagrams/traffic-flow.png) diagram for an overview of request paths through the mesh.
 
-In this blueprint, you deploy a service mesh with a custom Istio profile (see [yaml](./anthos-service-mesh/istio-operator-in-scope_tmpl.yaml)). 
+In this blueprint, you deploy a service mesh based on the `asm-multicloud` profile. See the 
+[supported features](https://cloud.google.com/service-mesh/docs/supported-features) docs for details on the 
+functionality available in the `asm-multicloud` profile. You customise the profile with an
+[overlay](https://cloud.google.com/service-mesh/docs/enable-optional-features) (see overlay [yaml](./anthos-service-mesh/istio-overlay-in-scope_tmpl.yaml)).
 * The mesh has the following characteristics:
   * Multi-primary. Each GKE cluster operates its own mesh, and has its own Istio control plane.
   * Multi-network. The GKE clusters are in separate vSphere networks to enforce strong isolation between the in-scope
 and out-of-scope resources. The workload instances in different networks reach each other through 
 [Istio gateways](https://istio.io/latest/docs/concepts/traffic-management/#gateways)
-  * Multi-cluster. The meshes are configured to exchange endpoint information, so services in the in-scope cluster can
-communicate with services in the out-of-scope cluster. 
   * Refer to the [Deployment Models](https://istio.io/latest/docs/ops/deployment/deployment-models)
 Istio documentation for a deeper discussion of these topics.  
 * The store-in-scope and store-out-of-scope namespaces are enabled for Istio proxy injection. Pods in these namespaces
@@ -120,10 +125,12 @@ access to external resources by default. If an in-scope microservice requires ac
 access must be explicitly configured. 
 * Istio [AuthenticationPolicies](https://istio.io/latest/docs/tasks/security/authentication/authn-policy/) to 
 use STRICT mTLS for all service-to-service communication (see [yaml](./demo/config-management/in-scope/namespaces/istio-system/peer-authentication.yaml))
+  * There is a Policy Controller constraint (see below) that prevents changing the STRICT mTLS setting
 * Istio [AuthorizationPolicies](https://istio.io/latest/docs/reference/config/security/authorization-policy/) 
 to control which microservices can call each other (see [yaml](./demo/config-management/in-scope/namespaces/store-in-scope/auth-policy.yaml)). For example:
+  * allow requests to the Frontend service only from the ingressgateway
   * allow requests to services in the `store-in-scope` namespace only from other services within the
-  `store-in-scope` namespace (except Frontend, which allows external requests).
+  `store-in-scope` namespace
   * allow requests only from authenticated services
 
 ### Anthos Config Management
@@ -139,11 +146,15 @@ including:
 ### Anthos Policy Controller
 You also use [Anthos Policy Controller](https://cloud.google.com/anthos-config-management/docs/concepts/policy-controller),
 a dynamic admission controller for Kubernetes that enforces CustomResourceDefinition-based (CRD-based) policies that
-are executed by the Open Policy Agent (OPA). In this blueprint, you enforce constraints (see [yamll](./demo/config-management/in-scope/cluster/constraints.yaml))
-including:
-* a constraint which ensures that the PeerAuthentication rule for strict mutual TLS is not changed.
-* a constraint which prevents users from creating Services of type NodePort
-* constraints to [enforce Pod security](https://cloud.google.com/anthos-config-management/docs/how-to/using-constraints-to-enforce-pod-security)
+are executed by the Open Policy Agent (OPA). In this blueprint, you enforce constraints including:
+* Custom constraint templates (see [yaml](./demo/config-management/in-scope/cluster/constraint-templates.yaml)) that:
+  * prevent modifying the PeerAuthentication strict mutual TLS setting
+  * prevent creation of Services of type NodePort
+  * The templates are then applied (see [yaml](./demo/config-management/in-scope/cluster/constraints.yaml))
+* Constraints to [enforce Pod security](https://cloud.google.com/anthos-config-management/docs/how-to/using-constraints-to-enforce-pod-security). 
+(see constraint [yaml](./demo/config-management/in-scope/cluster/constraints-psp.yaml))
+  * Note that the blueprint implements only a subset of the constraints that map to PodSecurityPolicy. 
+  See the Gatekeeper [repo](https://github.com/open-policy-agent/gatekeeper-library/tree/master/library/pod-security-policy) for the full set.
 
 
 ## Prequisites
@@ -154,12 +165,17 @@ To install this blueprint you need:
  * A GKE on-prem [installation](https://cloud.google.com/anthos/gke/docs/on-prem/how-to/install-overview-basic) including
    * An admin workstation. 
    * One admin cluster
-   * Two user clusters. 
+   * **Two** user clusters. 
      * The basic GKE on-prem installation creates one user cluster. See the [creating a user cluster](https://cloud.google.com/anthos/gke/docs/on-prem/how-to/create-user-cluster)
      docs for details on how to add another user cluster.
    * Load balancers configured with virtual IP addresses (VIP)
-     * For this blueprint, you require an additonal VIP per user cluster
-     * These VIPs are used as the entry point for the Online Boutique services via an Istio IngressGateway 
+     * For this blueprint, you require an additonal VIP per user cluster. These VIPs are used for the Istio IngressGateway
+     LoadBalancers that provide access to the Online Boutique microservices 
+ * When creating your GKE on-prem installation:
+   * Follow the GKE on-prem [hardening guide](https://cloud.google.com/anthos/gke/docs/on-prem/how-to/hardening-your-cluster)
+   * Configure [OpenID Connect](https://cloud.google.com/anthos/gke/docs/on-prem/how-to/oidc)
+   * Enable [Audit Logging](https://cloud.google.com/anthos/gke/docs/on-prem/how-to/audit-logging)
+     * **Note** that Audit Logging is currently covered by Pre-GA terms
 
 ## Installation
 ### Basics

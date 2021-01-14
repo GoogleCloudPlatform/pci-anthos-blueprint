@@ -12,7 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Policy to only allow requests from store-in-scope namespace
+# Policy to allow requests to Frontend from ingressgateway.
+# Applied in addtion to the policy below.
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+ name: frontend-allow-from-ingressgateway
+spec:
+  action: ALLOW
+  selector:
+   matchLabels:
+     app: frontend
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"]
+---
+# Policy to only allow requests from services within the store-in-scope namespace.
+# Applies to all workloads in the namespace.
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
@@ -26,18 +43,3 @@ spec:
         namespaces: ["store-in-scope"]
         # and must be authenticated
         principals: ["*"]
-
----
-# Policy to allow all requests to Frontend
-# This supercedes the above rule for Frontend only.
-apiVersion: security.istio.io/v1beta1
-kind: AuthorizationPolicy
-metadata:
- name: auth-policy-allow-frontend
-spec:
-  action: ALLOW
-  selector:
-   matchLabels:
-     app: frontend
-  rules:
-  - {}

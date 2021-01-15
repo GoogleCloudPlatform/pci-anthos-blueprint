@@ -1,0 +1,13 @@
+# apiVersion: autoscaling/v1
+# kind: HorizontalPodAutoscaler
+# metadata:
+#   name: cartservice
+#   namespace: store-out-of-scope
+# spec:
+#   maxReplicas: 0
+#   minReplicas: 0
+#   scaleTargetRef:
+#     apiVersion: apps/v1
+#     kind: Deployment
+#     name: cartservice
+#   targetCPUUtilizationPercentage: 50

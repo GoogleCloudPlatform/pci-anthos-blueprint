@@ -1,0 +1,19 @@
+apiVersion: networking.gke.io/v1beta1
+kind: MultiClusterService
+metadata:
+  name: istio-ingressgateway-multicluster-svc
+  annotations:
+    beta.cloud.google.com/backend-config: '{"ports": {"80":"gke-ingress-config"}}'
+spec:
+  template:
+    spec:
+      selector:
+        app: istio-ingressgateway
+      ports:
+      - name: frontend
+        protocol: TCP
+        port: 80
+        targetPort: 8080
+  clusters:
+  - link: "us-west1-a/r1-1"
+  - link: "us-west2-a/r2-1"

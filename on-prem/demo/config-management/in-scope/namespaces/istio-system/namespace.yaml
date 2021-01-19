@@ -18,3 +18,4 @@ metadata:
   name: istio-system
   labels:
     name: istio-system
+    topology.istio.io/network: in-scope-network

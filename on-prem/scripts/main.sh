@@ -71,8 +71,9 @@ EOF
 function create_istio_system_namespace {
   for CTX in in-scope out-of-scope; do
     kubectx $CTX
-#    kubectl delete namespace istio-system &> /dev/null || true
     kubectl create namespace istio-system &> /dev/null || true
+    kubectl label namespace istio-system name=istio-system
+    kubectl label namespace istio-system topology.istio.io/network=${CTX}-network
   done
 }
 
@@ -98,9 +99,9 @@ function generate_istio_config_from_template {
 function istioctl_install {
   for CTX in in-scope out-of-scope; do
     kubectx $CTX
-	  istioctl install \
+	  istioctl install -y \
       --set profile=asm-multicloud \
-      --set revision=asm-173-6 \
+      --set revision=${ASM_REVISION_LABEL} \
       -f ../anthos-service-mesh/istio-overlay-$CTX.yaml \
       -f ${TMP_DIR}/asm-packages/asm/istio/options/cni-onprem.yaml
 
@@ -108,6 +109,7 @@ function istioctl_install {
     kubectl apply -f ../anthos-service-mesh/istiod-service.yaml
   done
 }
+
 
 # Configure cross-cluster service registry. The following command creates a secret in each cluster with the other cluster's
 # KUBECONFIG file so it can access (auth) services and endpoints running in that other cluster.

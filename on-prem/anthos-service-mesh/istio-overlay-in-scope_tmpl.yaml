@@ -32,7 +32,10 @@ spec:
                 targetPort: 8443
   values:
     global:
-      network: in-scope
+      meshID: pci-mesh
+      multiCluster:
+        clusterName: in-scope
+      network: in-scope-network
       meshNetworks:
         in-scope:
           endpoints:
@@ -46,4 +49,4 @@ spec:
           gateways:
           # ingress VIP for out-of-scope
           - address: ${OUT_OF_SCOPE_ISTIO_INGRESS_IP}
-            port: 443
+            port: 15443
